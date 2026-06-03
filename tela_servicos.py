@@ -5,10 +5,22 @@ import sqlite3
 import sys
 import os
 from PIL import Image, ImageTk
-from datetime import datetime, timedelta # Para gerar as datas dinâmicas
+from datetime import datetime, timedelta
+
+# =========================================================
+# PALETA DE CORES GLOBAL (Single Source of Truth)
+# =========================================================
+C_VERDE_BASE   = "#41A77A"  
+C_VERDE_ESCURO = "#2A6B4B"  
+C_AZUL_MARINHO = "#115272"  
+C_VERMELHO     = "#E7272D"  
+C_BRANCO       = "#FFFFFF"
+C_CINZA_FUNDO  = "#F9F9F9"
+C_CINZA_TEXTO  = "gray"
+C_PRETO        = "black"
 
 # ---------------------------------------------------------
-# CLASSE: Botão Arredondado Simples (Voltar, Confirmar)
+# CLASSE: Botão Arredondado Genérico
 # ---------------------------------------------------------
 class BotaoArredondado(Canvas):
     def __init__(self, master, text, bg_color, fg_color, font, command, radius=20, image=None, **kwargs):
@@ -38,8 +50,8 @@ class BotaoArredondado(Canvas):
         self.create_rectangle(0, r, w, h-r, fill=self.bg_color, outline="")
         
         if self.imagem_icone:
-            self.create_image(w/2, h/2 - 20, image=self.imagem_icone)
-            self.create_text(w/2, h/2 + 40, text=self.text, fill=self.fg_color, font=self.font, justify="center")
+            self.create_image(w/2, h/2 - 40, image=self.imagem_icone)
+            self.create_text(w/2, h/2 + 65, text=self.text, fill=self.fg_color, font=self.font, justify="center")
         else:
             self.create_text(w/2, h/2, text=self.text, fill=self.fg_color, font=self.font, justify="center")
 
@@ -52,9 +64,9 @@ class BotaoArredondado(Canvas):
 # ---------------------------------------------------------
 # CLASSE: Botão de Opção (Carrossel de Exames)
 # ---------------------------------------------------------
-class BotaoOpcao(Canvas):
+class BotOpcao(Canvas):
     def __init__(self, master, text, image, valor, command_select, **kwargs):
-        super().__init__(master, bg="white", highlightthickness=0, height=110, **kwargs)
+        super().__init__(master, bg=C_BRANCO, highlightthickness=0, width=650, height=110, **kwargs)
         self.text = text
         self.imagem = image
         self.valor = valor
@@ -72,7 +84,7 @@ class BotaoOpcao(Canvas):
         if self.estado == "escurecido":
             cor_base, cor_interna, cor_texto = "#76847D", "#515B56", "#D0D0D0"
         else:
-            cor_base, cor_interna, cor_texto = "#41A77A", "#2A6B4B", "white"
+            cor_base, cor_interna, cor_texto = C_VERDE_BASE, C_VERDE_ESCURO, C_BRANCO
 
         def draw_round_rect(x1, y1, x2, y2, r, cor):
             self.create_oval(x1, y1, x1+r*2, y1+r*2, fill=cor, outline="")
@@ -84,7 +96,6 @@ class BotaoOpcao(Canvas):
 
         draw_round_rect(0, 0, w, h, r, cor_base)
         draw_round_rect(15, 15, 120, h-15, 20, cor_interna)
-
         if self.imagem: self.create_image(67, h/2, image=self.imagem)
         self.create_text(150, h/2, text=self.text, font=("Nunito", 24, "bold"), fill=cor_texto, anchor=W)
 
@@ -100,7 +111,7 @@ class BotaoOpcao(Canvas):
 # ---------------------------------------------------------
 class BotaoData(Canvas):
     def __init__(self, master, dia_semana, dia_mes, data_completa, command_select, **kwargs):
-        super().__init__(master, bg="white", highlightthickness=0, width=90, height=100, **kwargs)
+        super().__init__(master, bg=C_BRANCO, highlightthickness=0, width=95, height=110, **kwargs)
         self.dia_semana = dia_semana
         self.dia_mes = dia_mes
         self.valor = data_completa
@@ -118,9 +129,8 @@ class BotaoData(Canvas):
         if self.estado == "escurecido":
             cor_topo, cor_base, cor_texto = "#515B56", "#76847D", "#D0D0D0"
         else:
-            cor_topo, cor_base, cor_texto = "#2A6B4B", "#41A77A", "white"
+            cor_topo, cor_base, cor_texto = C_VERDE_ESCURO, C_VERDE_BASE, C_BRANCO
 
-        # Base completa (verde claro)
         self.create_oval(0, 0, r*2, r*2, fill=cor_base, outline="")
         self.create_oval(w-r*2, 0, w, r*2, fill=cor_base, outline="")
         self.create_oval(0, h-r*2, r*2, h, fill=cor_base, outline="")
@@ -128,14 +138,12 @@ class BotaoData(Canvas):
         self.create_rectangle(r, 0, w-r, h, fill=cor_base, outline="")
         self.create_rectangle(0, r, w, h-r, fill=cor_base, outline="")
 
-        # Topo (verde escuro)
         altura_topo = h * 0.35
         self.create_oval(0, 0, r*2, r*2, fill=cor_topo, outline="")
         self.create_oval(w-r*2, 0, w, r*2, fill=cor_topo, outline="")
         self.create_rectangle(r, 0, w-r, r, fill=cor_topo, outline="")
         self.create_rectangle(0, r, w, altura_topo, fill=cor_topo, outline="")
 
-        # Textos
         self.create_text(w/2, altura_topo/2, text=self.dia_semana, font=("Nunito", 16, "bold"), fill=cor_texto)
         self.create_text(w/2, altura_topo + (h-altura_topo)/2, text=self.dia_mes, font=("Nunito", 32, "bold"), fill=cor_texto)
 
@@ -147,11 +155,11 @@ class BotaoData(Canvas):
         self.desenhar()
 
 # ---------------------------------------------------------
-# CLASSE: Botão de Horário (Pílula) - CORRIGIDA
+# CLASSE: Botão de Horário (Pílula)
 # ---------------------------------------------------------
 class BotaoHorario(Canvas):
     def __init__(self, master, horario, command_select, **kwargs):
-        super().__init__(master, bg="white", highlightthickness=0, width=120, height=45, **kwargs)
+        super().__init__(master, bg=C_BRANCO, highlightthickness=0, width=130, height=50, **kwargs)
         self.valor = horario
         self.command_select = command_select
         self.selecionado = False
@@ -164,7 +172,6 @@ class BotaoHorario(Canvas):
         w, h, r = self.winfo_width(), self.winfo_height(), 20
         if w < r*2 or h < r*2: return
 
-        # Função auxiliar limpa para desenhar pílulas sólidas
         def draw_round_rect(x1, y1, x2, y2, raio, cor):
             self.create_oval(x1, y1, x1+raio*2, y1+raio*2, fill=cor, outline="")
             self.create_oval(x2-raio*2, y1, x2, y1+raio*2, fill=cor, outline="")
@@ -174,15 +181,12 @@ class BotaoHorario(Canvas):
             self.create_rectangle(x1, y1+raio, x2, y2-raio, fill=cor, outline="")
 
         if self.selecionado:
-            # Se selecionado, desenha a pílula toda verde
-            draw_round_rect(0, 0, w, h, r, "#41A77A")
-            fg_color = "white"
+            draw_round_rect(0, 0, w, h, r, C_VERDE_BASE)
+            fg_color = C_BRANCO
         else:
-            # Se não selecionado, desenha uma base verde escura (que servirá de borda)
-            draw_round_rect(0, 0, w, h, r, "#2A6B4B")
-            # E desenha uma pílula branca 2 pixels menor por cima (apagando o centro)
-            draw_round_rect(2, 2, w-2, h-2, r-2, "white")
-            fg_color = "#2A6B4B"
+            draw_round_rect(0, 0, w, h, r, C_VERDE_ESCURO)
+            draw_round_rect(2, 2, w-2, h-2, r-2, C_BRANCO)
+            fg_color = C_VERDE_ESCURO
 
         self.create_text(w/2, h/2, text=self.valor, font=("Nunito", 20, "bold"), fill=fg_color)
 
@@ -193,6 +197,7 @@ class BotaoHorario(Canvas):
         self.selecionado = status
         self.desenhar()
 
+
 # ---------------------------------------------------------
 # SISTEMA PRINCIPAL DO PDV
 # ---------------------------------------------------------
@@ -201,20 +206,45 @@ def iniciar_pdv(cpf_cliente, root=None):
     else: janela = Tk()
         
     janela.title("Atendimento - Clínica Legal")
-    janela.geometry("600x800")
-    janela.resizable(width=FALSE, height=FALSE)
-    janela.configure(background="white")
+    janela.geometry("1280x720")
+    janela.state('zoomed')
+    janela.resizable(width=True, height=True)
+    janela.configure(background=C_BRANCO)
+
+    def alternar_fullscreen_pdv(event=None):
+        state = not janela.attributes('-fullscreen')
+        janela.attributes('-fullscreen', state)
+    janela.bind("<F11>", alternar_fullscreen_pdv)
 
     def fechar_programa():
         if root: root.destroy()
         else: janela.destroy()
     janela.protocol("WM_DELETE_WINDOW", fechar_programa)
 
-    cor_verde_escuro = "#2A6B4B"
-    cor_verde = "#41A77A"
-    cor_azul = "#2E6678"
-    cor_vermelha = "#E04F53"
-    
+    # --- FUNÇÃO DE LOGOUT SIMPLES ---
+    def deslogar_usuario(event=None):
+        resposta = messagebox.askyesno(
+            "Encerrar Atendimento", 
+            "Tem certeza que deseja encerrar seu atendimento e sair?"
+        )
+        
+        if resposta: 
+            if root:
+                janela.destroy() 
+                root.deiconify() 
+                
+                for widget in root.winfo_children():
+                    if isinstance(widget, Frame):
+                        for sub_w in widget.winfo_children():
+                            if isinstance(sub_w, Frame):
+                                for final_w in sub_w.winfo_children():
+                                    if isinstance(final_w, ttk.Entry):
+                                        final_w.delete(0, END)
+                                    if isinstance(final_w, Label) and final_w.cget("text") not in ["Seja bem vindo(a)", "Digite seu CPF (apenas números):"]:
+                                        final_w.config(text="")
+            else:
+                janela.destroy()
+
     pedido_atual = {"cpf": cpf_cliente, "tipo": "", "profissional": "", "data": "", "horario": ""}
     
     botoes_carrossel_ativos = []
@@ -225,8 +255,19 @@ def iniciar_pdv(cpf_cliente, root=None):
     img_dict = {}
     try:
         diretorio_atual = os.path.dirname(os.path.abspath(__file__))
-        img_dict['exame_btn'] = ImageTk.PhotoImage(Image.open(os.path.join(diretorio_atual, "Assets", "icone_exame.png")).resize((80, 80), Image.Resampling.LANCZOS))
-        img_dict['consulta_btn'] = ImageTk.PhotoImage(Image.open(os.path.join(diretorio_atual, "Assets", "icone_consulta.png")).resize((80, 80), Image.Resampling.LANCZOS))
+        
+        img_logo_topo = Image.open(os.path.join(diretorio_atual, "Assets", "Logo", "main_logo.png"))
+        proporcao_topo = (260 / float(img_logo_topo.size[0]))
+        altura_topo_img = int((float(img_logo_topo.size[1]) * float(proporcao_topo)))
+        img_dict['logo_topo'] = ImageTk.PhotoImage(img_logo_topo.resize((260, altura_topo_img), Image.Resampling.LANCZOS))
+        
+        img_dict['sair_btn'] = ImageTk.PhotoImage(Image.open(os.path.join(diretorio_atual, "Assets", "icone_sair.png")).resize((50, 50), Image.Resampling.LANCZOS))
+        
+        img_dict['exame_consulta_btn'] = ImageTk.PhotoImage(Image.open(os.path.join(diretorio_atual, "Assets", "icone_exame_consulta.png")).resize((130, 130), Image.Resampling.LANCZOS))
+        img_dict['agenda_btn'] = ImageTk.PhotoImage(Image.open(os.path.join(diretorio_atual, "Assets", "icone_agenda.png")).resize((130, 130), Image.Resampling.LANCZOS))
+        
+        img_dict['exame_only_btn'] = ImageTk.PhotoImage(Image.open(os.path.join(diretorio_atual, "Assets", "icone_exame.png")).resize((130, 130), Image.Resampling.LANCZOS))
+        img_dict['consulta_only_btn'] = ImageTk.PhotoImage(Image.open(os.path.join(diretorio_atual, "Assets", "icone_consulta.png")).resize((130, 130), Image.Resampling.LANCZOS))
         
         pasta_exames = os.path.join(diretorio_atual, "Assets", "exames")
         img_dict['hemo'] = ImageTk.PhotoImage(Image.open(os.path.join(pasta_exames, "icone_hemograma.png")).resize((55, 55), Image.Resampling.LANCZOS))
@@ -241,10 +282,32 @@ def iniciar_pdv(cpf_cliente, root=None):
     # ---------------------------------------------------------
     def mostrar_frame(frame_destino):
         frame_passo1.pack_forget()
+        frame_passo1_meio.pack_forget()
         frame_passo2.pack_forget()
         frame_passo3.pack_forget()
         frame_passo4.pack_forget()
         frame_destino.pack(fill=BOTH, expand=True)
+
+    def abrir_meus_agendamentos():
+        conn = sqlite3.connect('banco_pedidos.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='agendamentos'")
+        tabela_existe = cursor.fetchone()
+        
+        historico_texto = ""
+        if tabela_existe:
+            cursor.execute("SELECT tipo_servico, profissional_procedimento, data_agendamento, horario_agendamento FROM agendamentos WHERE cpf_cliente=?", (cpf_cliente,))
+            registros = cursor.fetchall()
+            if registros:
+                for reg in registros:
+                    historico_texto += f"• {reg[0]}: {reg[1]} | {reg[2]} às {reg[3]}\n\n"
+            else:
+                historico_texto = "Nenhum agendamento encontrado para este cliente."
+        else:
+            historico_texto = "Nenhum agendamento registrado no sistema ainda."
+        
+        conn.close()
+        messagebox.showinfo(f"Agenda do Cliente - CPF: {cpf_cliente}", historico_texto)
 
     def selecionar_item_carrossel(botao_clicado):
         if botao_clicado.estado == "selecionado":
@@ -275,12 +338,11 @@ def iniciar_pdv(cpf_cliente, root=None):
             dados = [("Clínico Geral", None, "Dr. Carlos Silva"), ("Pediatria", None, "Dra. Ana Beatriz"), ("Cardiologia", None, "Dr. Roberto Souza")]
 
         for texto, img, valor_real in dados:
-            btn = BotaoOpcao(scroll_interno, text=texto, image=img, valor=valor_real, command_select=selecionar_item_carrossel)
-            btn.pack(fill=X, padx=10, pady=10)
+            btn = BotOpcao(scroll_interno, text=texto, image=img, valor=valor_real, command_select=selecionar_item_carrossel)
+            btn.pack(pady=10)
             botoes_carrossel_ativos.append(btn)
         mostrar_frame(frame_passo2)
 
-    # Lógica de Seleção de Data e Hora
     def selecionar_data(botao_clicado):
         for btn in botoes_data_ativos:
             btn.set_estado("selecionado" if btn == botao_clicado else "escurecido")
@@ -299,13 +361,11 @@ def iniciar_pdv(cpf_cliente, root=None):
         pedido_atual["data"] = ""
         pedido_atual["horario"] = ""
         
-        # Limpa as listas antigas
         for widget in scroll_data_interno.winfo_children(): widget.destroy()
         for widget in grid_horarios.winfo_children(): widget.destroy()
         botoes_data_ativos.clear()
         botoes_horario_ativos.clear()
 
-        # 1. Gerar Datas Dinâmicas (Próximos 10 dias úteis)
         dias_semana_pt = {0:"Seg", 1:"Ter", 2:"Qua", 3:"Qui", 4:"Sex", 5:"Sáb", 6:"Dom"}
         hoje = datetime.now()
         dias_adicionados = 0
@@ -313,17 +373,16 @@ def iniciar_pdv(cpf_cliente, root=None):
 
         while dias_adicionados < 10:
             dia_iteracao += timedelta(days=1)
-            if dia_iteracao.weekday() < 5: # Ignora Sábado e Domingo
+            if dia_iteracao.weekday() < 5:
                 str_semana = dias_semana_pt[dia_iteracao.weekday()]
                 str_dia = str(dia_iteracao.day)
                 str_completa = dia_iteracao.strftime("%d/%m/%Y")
                 
                 btn_d = BotaoData(scroll_data_interno, dia_semana=str_semana, dia_mes=str_dia, data_completa=str_completa, command_select=selecionar_data)
-                btn_d.pack(side=LEFT, padx=8)
+                btn_d.pack(side=LEFT, padx=10)
                 botoes_data_ativos.append(btn_d)
                 dias_adicionados += 1
 
-        # 2. Gerar Horários Dinâmicos
         prof = pedido_atual["profissional"]
         if "Pediatra" in prof or "Hemograma" in prof:
             horarios = ["08:00", "08:30", "09:00", "09:30", "10:00"]
@@ -332,11 +391,10 @@ def iniciar_pdv(cpf_cliente, root=None):
         else:
             horarios = ["08:00", "08:30", "09:00", "14:00", "14:30", "15:00"]
 
-        # Organiza os horários em uma grade (3 colunas)
         for i, h in enumerate(horarios):
             row, col = i // 3, i % 3
             btn_h = BotaoHorario(grid_horarios, horario=h, command_select=selecionar_horario)
-            btn_h.grid(row=row, column=col, padx=10, pady=10)
+            btn_h.grid(row=row, column=col, padx=12, pady=12)
             botoes_horario_ativos.append(btn_h)
 
         mostrar_frame(frame_passo3)
@@ -363,88 +421,180 @@ def iniciar_pdv(cpf_cliente, root=None):
         finally: conn.close()
 
     # =========================================================
-    # CONSTRUÇÃO DAS TELAS
+    # CONSTRUÇÃO DAS TELAS (GRID ALINHADO)
     # =========================================================
 
-    # --- PASSO 1: INÍCIO ---
-    frame_passo1 = Frame(janela, bg="white")
-    Label(frame_passo1, text="Selecione a opção\ndesejada", font=("Nunito", 28, "bold"), bg="white", fg="black", justify=CENTER).pack(pady=(60, 30))
-    container_botoes = Frame(frame_passo1, bg="white")
-    container_botoes.pack(fill=BOTH, expand=True, padx=70, pady=10)
-    BotaoArredondado(container_botoes, text="Exames", bg_color=cor_verde, fg_color="white", font=("Nunito", 32, "bold"), command=lambda: montar_carrossel("Exame"), radius=45, image=img_dict.get('exame_btn')).pack(fill=BOTH, expand=True, pady=(0, 20))
-    BotaoArredondado(container_botoes, text="Consultas", bg_color=cor_azul, fg_color="white", font=("Nunito", 32, "bold"), command=lambda: montar_carrossel("Consulta"), radius=45, image=img_dict.get('consulta_btn')).pack(fill=BOTH, expand=True, pady=(20, 60))
+    # --- PASSO 1: MENU PRINCIPAL ---
+    frame_passo1 = Frame(janela, bg=C_VERDE_BASE)
+    
+    # 1. Cabeçalho exato
+    topo_branco_1 = Frame(frame_passo1, bg=C_BRANCO, height=140)
+    topo_branco_1.pack(fill=X, side=TOP)
+    topo_branco_1.pack_propagate(False)
+    
+    if img_dict.get('logo_topo'):
+        lbl_logo_t1 = Label(topo_branco_1, image=img_dict['logo_topo'], bg=C_BRANCO)
+        lbl_logo_t1.pack(side=LEFT, padx=50, pady=15)
+        
+    btn_sair_container_1 = Frame(topo_branco_1, bg=C_BRANCO, cursor="hand2")
+    btn_sair_container_1.pack(side=RIGHT, padx=50, pady=15)
+    
+    if img_dict.get('sair_btn'):
+        lbl_img_sair_1 = Label(btn_sair_container_1, image=img_dict['sair_btn'], bg=C_BRANCO)
+        lbl_img_sair_1.pack(side=LEFT)
+        lbl_img_sair_1.bind("<Button-1>", deslogar_usuario)
+        
+    lbl_txt_sair_1 = Label(btn_sair_container_1, text="Sair", font=("Nunito", 28, "bold"), fg=C_VERMELHO, bg=C_BRANCO)
+    lbl_txt_sair_1.pack(side=LEFT, padx=(10, 0))
+    lbl_txt_sair_1.bind("<Button-1>", deslogar_usuario)
+    btn_sair_container_1.bind("<Button-1>", deslogar_usuario)
+
+    # 2. Rodapé de grid (Vazio e travado com height=140)
+    rodape_p1 = Frame(frame_passo1, bg=C_VERDE_BASE, height=140)
+    rodape_p1.pack(fill=X, side=BOTTOM)
+    rodape_p1.pack_propagate(False)
+
+    # 3. Corpo central
+    corpo_verde_1 = Frame(frame_passo1, bg=C_VERDE_BASE)
+    corpo_verde_1.pack(fill=BOTH, expand=True)
+
+    # 4. Título e Botões na posição exata
+    Label(corpo_verde_1, text="Selecione a opção desejada", font=("Nunito", 36, "bold"), bg=C_VERDE_BASE, fg=C_BRANCO).pack(pady=(40, 20))
+    
+    container_gigante_1 = Frame(corpo_verde_1, bg=C_VERDE_BASE)
+    container_gigante_1.place(relx=0.5, rely=0.5, anchor="center")
+    
+    BotaoArredondado(container_gigante_1, text="Consultas/\nExames", bg_color=C_BRANCO, fg_color=C_AZUL_MARINHO, font=("Nunito", 32, "bold"), command=lambda: mostrar_frame(frame_passo1_meio), radius=45, image=img_dict.get('exame_consulta_btn'), width=400, height=360).pack(side=LEFT, padx=30)
+    BotaoArredondado(container_gigante_1, text="Meus\nAgendamentos", bg_color=C_AZUL_MARINHO, fg_color=C_BRANCO, font=("Nunito", 32, "bold"), command=abrir_meus_agendamentos, radius=45, image=img_dict.get('agenda_btn'), width=400, height=360).pack(side=RIGHT, padx=30)
 
 
-    # --- PASSO 2: CARROSSEL DE SELEÇÃO ---
-    frame_passo2 = Frame(janela, bg="white")
-    lbl_titulo_carrossel = Label(frame_passo2, text="Selecione seu exame", font=("Nunito", 28, "bold"), bg="white", fg=cor_verde_escuro)
-    lbl_titulo_carrossel.pack(pady=(40, 10))
+    # --- PASSO 1.5: TELA INTERMEDIÁRIA (Cópia fiel do Grid 1) ---
+    frame_passo1_meio = Frame(janela, bg=C_VERDE_BASE)
+    
+    # 1. Cabeçalho exato
+    topo_branco_m = Frame(frame_passo1_meio, bg=C_BRANCO, height=140)
+    topo_branco_m.pack(fill=X, side=TOP)
+    topo_branco_m.pack_propagate(False)
+    
+    if img_dict.get('logo_topo'):
+        lbl_logo_tm = Label(topo_branco_m, image=img_dict['logo_topo'], bg=C_BRANCO)
+        lbl_logo_tm.pack(side=LEFT, padx=50, pady=15)
+        
+    btn_sair_container_m = Frame(topo_branco_m, bg=C_BRANCO, cursor="hand2")
+    btn_sair_container_m.pack(side=RIGHT, padx=50, pady=15)
+    
+    if img_dict.get('sair_btn'):
+        lbl_img_sair_m = Label(btn_sair_container_m, image=img_dict['sair_btn'], bg=C_BRANCO)
+        lbl_img_sair_m.pack(side=LEFT)
+        lbl_img_sair_m.bind("<Button-1>", deslogar_usuario)
+        
+    lbl_txt_sair_m = Label(btn_sair_container_m, text="Sair", font=("Nunito", 28, "bold"), fg=C_VERMELHO, bg=C_BRANCO)
+    lbl_txt_sair_m.pack(side=LEFT, padx=(10, 0))
+    lbl_txt_sair_m.bind("<Button-1>", deslogar_usuario)
+    btn_sair_container_m.bind("<Button-1>", deslogar_usuario)
 
-    frame_scroll = Frame(frame_passo2, bg="white")
-    frame_scroll.pack(fill=BOTH, expand=True, padx=20, pady=10)
-    canvas_scroll = Canvas(frame_scroll, bg="white", highlightthickness=0)
+    # 2. Rodapé de grid (Com o botão voltar)
+    rodape_p1_meio = Frame(frame_passo1_meio, bg=C_VERDE_BASE, height=140)
+    rodape_p1_meio.pack(fill=X, side=BOTTOM)
+    rodape_p1_meio.pack_propagate(False)
+    
+    # Botão de Voltar centralizado verticalmente no rodapé
+    BotaoArredondado(rodape_p1_meio, text="🡄 Voltar Menu", bg_color=C_VERMELHO, fg_color=C_BRANCO, font=("Nunito", 18, "bold"), command=lambda: mostrar_frame(frame_passo1), width=200, height=60, radius=15).pack(side=LEFT, padx=120, pady=40)
+
+    # 3. Corpo central
+    corpo_verde_m = Frame(frame_passo1_meio, bg=C_VERDE_BASE)
+    corpo_verde_m.pack(fill=BOTH, expand=True)
+
+    # 4. Título e Botões na posição exata
+    Label(corpo_verde_m, text="Selecione a opção desejada", font=("Nunito", 36, "bold"), bg=C_VERDE_BASE, fg=C_BRANCO).pack(pady=(40, 20))
+    
+    container_gigante_m = Frame(corpo_verde_m, bg=C_VERDE_BASE)
+    container_gigante_m.place(relx=0.5, rely=0.5, anchor="center")
+    
+    BotaoArredondado(container_gigante_m, text="Exames", bg_color=C_BRANCO, fg_color=C_AZUL_MARINHO, font=("Nunito", 32, "bold"), command=lambda: montar_carrossel("Exame"), radius=45, image=img_dict.get('exame_only_btn'), width=400, height=360).pack(side=LEFT, padx=30)
+    BotaoArredondado(container_gigante_m, text="Consultas", bg_color=C_AZUL_MARINHO, fg_color=C_BRANCO, font=("Nunito", 32, "bold"), command=lambda: montar_carrossel("Consulta"), radius=45, image=img_dict.get('consulta_only_btn'), width=400, height=360).pack(side=RIGHT, padx=30)
+
+
+    # --- PASSO 2: LISTA DE SELEÇÃO (CARROSSEL) ---
+    frame_passo2 = Frame(janela, bg=C_BRANCO)
+    lbl_titulo_carrossel = Label(frame_passo2, text="Selecione seu exame", font=("Nunito", 32, "bold"), bg=C_BRANCO, fg=C_VERDE_ESCURO)
+    lbl_titulo_carrossel.pack(pady=(40, 20))
+
+    frame_scroll = Frame(frame_passo2, bg=C_BRANCO)
+    frame_scroll.pack(fill=BOTH, expand=True, padx=80, pady=10)
+    canvas_scroll = Canvas(frame_scroll, bg=C_BRANCO, highlightthickness=0)
     scrollbar = Scrollbar(frame_scroll, orient="vertical", command=canvas_scroll.yview)
-    scroll_interno = Frame(canvas_scroll, bg="white")
+    scroll_interno = Frame(canvas_scroll, bg=C_BRANCO)
     scroll_interno.bind("<Configure>", lambda e: canvas_scroll.configure(scrollregion=canvas_scroll.bbox("all")))
-    canvas_scroll.create_window((0, 0), window=scroll_interno, anchor="nw", width=530)
+    
+    janela_canvas_id = canvas_scroll.create_window((0, 0), window=scroll_interno, anchor="n")
+    canvas_scroll.bind('<Configure>', lambda e: canvas_scroll.coords(janela_canvas_id, e.width/2, 0))
+    
     canvas_scroll.configure(yscrollcommand=scrollbar.set)
     canvas_scroll.pack(side=LEFT, fill=BOTH, expand=True)
     scrollbar.pack(side=RIGHT, fill=Y)
     def _on_mousewheel(event): canvas_scroll.yview_scroll(int(-1*(event.delta/120)), "units")
     canvas_scroll.bind_all("<MouseWheel>", _on_mousewheel)
 
-    rodape_p2 = Frame(frame_passo2, bg="white")
-    rodape_p2.pack(fill=X, pady=30, padx=30)
-    BotaoArredondado(rodape_p2, text="🡄 Voltar", bg_color=cor_vermelha, fg_color="white", font=("Nunito", 16, "bold"), command=lambda: mostrar_frame(frame_passo1), width=150, height=55, radius=15).pack(side=LEFT)
-    BotaoArredondado(rodape_p2, text="Confirmar ➔", bg_color=cor_verde, fg_color="white", font=("Nunito", 18, "bold"), command=ir_para_data_hora, width=200, height=55, radius=15).pack(side=RIGHT)
+    rodape_p2 = Frame(frame_passo2, bg=C_BRANCO)
+    rodape_p2.pack(fill=X, pady=40, padx=120)
+    BotaoArredondado(rodape_p2, text="🡄 Voltar", bg_color=C_VERMELHO, fg_color=C_BRANCO, font=("Nunito", 18, "bold"), command=lambda: mostrar_frame(frame_passo1_meio), width=180, height=60, radius=15).pack(side=LEFT)
+    BotaoArredondado(rodape_p2, text="Confirmar ➔", bg_color=C_VERDE_BASE, fg_color=C_BRANCO, font=("Nunito", 18, "bold"), command=ir_para_data_hora, width=220, height=60, radius=15).pack(side=RIGHT)
 
 
     # --- PASSO 3: DATA E HORA ---
-    frame_passo3 = Frame(janela, bg="white")
-    Label(frame_passo3, text="Selecione a Data\ne horario", font=("Nunito", 28, "bold"), bg="white", fg=cor_verde_escuro, justify=CENTER).pack(pady=(40, 20))
+    frame_passo3 = Frame(janela, bg=C_BRANCO)
+    Label(frame_passo3, text="Selecione a Data\ne horario", font=("Nunito", 32, "bold"), bg=C_BRANCO, fg=C_VERDE_ESCURO, justify=CENTER).pack(pady=(40, 20))
 
-    form_container = Frame(frame_passo3, bg="white")
-    form_container.pack(fill=BOTH, expand=True, padx=30)
+    form_container = Frame(frame_passo3, bg=C_BRANCO)
+    form_container.pack(fill=BOTH, expand=True, padx=80, pady=10)
 
-    # Carrossel Horizontal de Datas
-    Label(form_container, text="Data do Atendimento:", font=("Nunito", 18, "bold"), bg="white", fg=cor_verde_escuro).pack(anchor=W, pady=(10, 5))
+    frame_col_esquerda = Frame(form_container, bg=C_BRANCO)
+    frame_col_esquerda.pack(side=LEFT, fill=BOTH, expand=True, padx=40)
+    Label(frame_col_esquerda, text="Data do Atendimento:", font=("Nunito", 22, "bold"), bg=C_BRANCO, fg=C_VERDE_ESCURO).pack(anchor=W, pady=(10, 15))
     
-    frame_scroll_data = Frame(form_container, bg="white")
-    frame_scroll_data.pack(fill=X, pady=(0, 20))
-    canvas_data = Canvas(frame_scroll_data, bg="white", highlightthickness=0, height=120)
+    frame_scroll_data = Frame(frame_col_esquerda, bg=C_BRANCO)
+    frame_scroll_data.pack(fill=X, pady=10)
+    canvas_data = Canvas(frame_scroll_data, bg=C_BRANCO, highlightthickness=0, height=130)
     scrollbar_data = Scrollbar(frame_scroll_data, orient="horizontal", command=canvas_data.xview)
-    scroll_data_interno = Frame(canvas_data, bg="white")
+    scroll_data_interno = Frame(canvas_data, bg=C_BRANCO)
     scroll_data_interno.bind("<Configure>", lambda e: canvas_data.configure(scrollregion=canvas_data.bbox("all")))
     canvas_data.create_window((0, 0), window=scroll_data_interno, anchor="nw")
     canvas_data.configure(xscrollcommand=scrollbar_data.set)
     canvas_data.pack(fill=X)
     scrollbar_data.pack(fill=X)
 
-    # Grid de Horários
-    Label(form_container, text="Horario:", font=("Nunito", 18, "bold"), bg="white", fg=cor_verde_escuro).pack(anchor=W, pady=(10, 5))
-    grid_horarios = Frame(form_container, bg="white")
-    grid_horarios.pack(anchor=W)
+    frame_col_direita = Frame(form_container, bg=C_BRANCO)
+    frame_col_direita.pack(side=RIGHT, fill=BOTH, expand=True, padx=40)
+    Label(frame_col_direita, text="Horario:", font=("Nunito", 22, "bold"), bg=C_BRANCO, fg=C_VERDE_ESCURO).pack(anchor=W, pady=(10, 15))
+    
+    wrapper_grade = Frame(frame_col_direita, bg=C_BRANCO)
+    wrapper_grade.pack(anchor=W)
+    grid_horarios = Frame(wrapper_grade, bg=C_BRANCO)
+    grid_horarios.pack()
 
-    # Rodapé do Passo 3
-    rodape_p3 = Frame(frame_passo3, bg="white")
-    rodape_p3.pack(fill=X, pady=30, padx=30)
-    BotaoArredondado(rodape_p3, text="🡄 Voltar", bg_color=cor_vermelha, fg_color="white", font=("Nunito", 16, "bold"), command=lambda: mostrar_frame(frame_passo2), width=150, height=55, radius=15).pack(side=LEFT)
-    BotaoArredondado(rodape_p3, text="Confirmar ➔", bg_color=cor_verde, fg_color="white", font=("Nunito", 18, "bold"), command=confirmar_pedido, width=200, height=55, radius=15).pack(side=RIGHT)
+    rodape_p3 = Frame(frame_passo3, bg=C_BRANCO)
+    rodape_p3.pack(fill=X, pady=40, padx=120)
+    BotaoArredondado(rodape_p3, text="🡄 Voltar", bg_color=C_VERMELHO, fg_color=C_BRANCO, font=("Nunito", 18, "bold"), command=lambda: mostrar_frame(frame_passo2), width=180, height=60, radius=15).pack(side=LEFT)
+    BotaoArredondado(rodape_p3, text="Confirmar ➔", bg_color=C_VERDE_BASE, fg_color=C_BRANCO, font=("Nunito", 18, "bold"), command=confirmar_pedido, width=220, height=60, radius=15).pack(side=RIGHT)
 
 
     # --- PASSO 4: TICKET FINAL ---
-    frame_passo4 = Frame(janela, bg="white")
-    Label(frame_passo4, text="✔ Pedido Finalizado!", font=("Nunito", 26, "bold"), bg="white", fg=cor_verde).pack(pady=(60, 20))
-    Label(frame_passo4, text="Guarde seu número de chamada:", font=("Nunito", 14), bg="white", fg="gray").pack()
-    lbl_num_ticket = Label(frame_passo4, text="#0000", font=("Nunito", 70, "bold"), bg="white", fg="black")
-    lbl_num_ticket.pack(pady=20)
+    frame_passo4 = Frame(janela, bg=C_BRANCO)
+    centro_ticket = Frame(frame_passo4, bg=C_BRANCO)
+    centro_ticket.place(relx=0.5, rely=0.45, anchor="center")
+    
+    Label(centro_ticket, text="✔ Pedido Finalizado com Sucesso!", font=("Nunito", 32, "bold"), bg=C_BRANCO, fg=C_VERDE_BASE).pack(pady=10)
+    Label(centro_ticket, text="Guarde seu número de chamada:", font=("Nunito", 16), bg=C_BRANCO, fg=C_CINZA_TEXTO).pack()
+    lbl_num_ticket = Label(centro_ticket, text="#0000", font=("Nunito", 80, "bold"), bg=C_BRANCO, fg=C_PRETO)
+    lbl_num_ticket.pack(pady=15)
 
-    caixa_recibo = Frame(frame_passo4, bg="#f9f9f9", highlightbackground="#cccccc", highlightthickness=2, padx=20, pady=20)
-    caixa_recibo.pack(fill=X, padx=50, pady=20)
-    lbl_resumo_ticket = Label(caixa_recibo, text="Resumo...", font=("Nunito", 16), bg="#f9f9f9", fg="black", justify=LEFT)
+    caixa_recibo = Frame(centro_ticket, bg=C_CINZA_FUNDO, highlightbackground="#cccccc", highlightthickness=2, padx=30, pady=30, width=550)
+    caixa_recibo.pack(fill=X, pady=10)
+    lbl_resumo_ticket = Label(caixa_recibo, text="Resumo...", font=("Nunito", 18), bg=C_CINZA_FUNDO, fg=C_PRETO, justify=LEFT)
     lbl_resumo_ticket.pack(anchor=W)
 
-    BotaoArredondado(frame_passo4, text="NOVO ATENDIMENTO", bg_color="#333333", fg_color="white", font=("Nunito", 16, "bold"), command=fechar_programa, height=60).pack(fill=X, padx=50, side=BOTTOM, pady=40)
+    BotaoArredondado(frame_passo4, text="VOLTAR AO INÍCIO", bg_color="#333333", fg_color=C_BRANCO, font=("Nunito", 18, "bold"), command=deslogar_usuario, height=65, width=350).pack(side=BOTTOM, pady=60)
 
     mostrar_frame(frame_passo1)
     if not root: janela.mainloop()
