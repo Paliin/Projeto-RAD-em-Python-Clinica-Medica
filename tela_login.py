@@ -7,36 +7,58 @@ import sqlite3
 import re
 import tela_servicos  # Importando o arquivo da próxima tela
 
-# criando a primeira janela "Login"
 janela_login = Tk()
 janela_login.title("Bem vindo(a) à Clínica Legal")
-janela_login.geometry("600x800")
-janela_login.resizable(width=FALSE, height=FALSE)
+janela_login.geometry("1280x720") 
+janela_login.state('zoomed') 
+janela_login.resizable(width=True, height=True)
 janela_login.configure(background="white")
+
+def alternar_fullscreen(event=None):
+    estado_atual = janela_login.attributes('-fullscreen')
+    janela_login.attributes('-fullscreen', not estado_atual)
+janela_login.bind("<F11>", alternar_fullscreen)
 
 # ----- controle das imagens e config ---
 img_original = Image.open("Assets/Logo/main_logo.png")
-img_resize = img_original.resize((600, 300), Image.Resampling.LANCZOS)
+
+# Definimos uma largura grande e imponente para o Desktop
+largura_desejada = 700
+
+# Calcula a altura automaticamente para NUNCA esticar a imagem
+proporcao = (largura_desejada / float(img_original.size[0]))
+altura_proporcional = int((float(img_original.size[1]) * float(proporcao)))
+
+img_resize = img_original.resize((largura_desejada, altura_proporcional), Image.Resampling.LANCZOS)
 logo = ImageTk.PhotoImage(img_resize)
 
-# ----- criando a janela de login -------
-Upframe = Frame(janela_login, width=600, height=300, relief=FLAT, bg="white")
-Upframe.pack(side=TOP)
+# ----- Disposição em Colunas (Formato Desktop Moderno) -------
+# Coluna Esquerda: Fundo cinza bem claro para destacar a logo branca (Split Screen)
+cor_fundo_esquerda = "#F4F7F6" 
+Leftframe = Frame(janela_login, relief=FLAT, bg=cor_fundo_esquerda)
+Leftframe.pack(side=LEFT, fill=BOTH, expand=True)
 
-logo_label = Label(Upframe, image=logo, bg="white")
-logo_label.place(x=0, y=0, relwidth=1, relheight=1)
+# Centraliza a logo dentro da coluna esquerda
+logo_container = Frame(Leftframe, bg=cor_fundo_esquerda)
+logo_container.place(relx=0.5, rely=0.5, anchor="center")
+logo_label = Label(logo_container, image=logo, bg=cor_fundo_esquerda)
+logo_label.pack()
 
-Downframe = Frame(janela_login, width=600, height=500, relief=FLAT, bg="white")
-Downframe.pack(side=BOTTOM, fill=X)
+# Coluna Direita: Formulário de Login (Fundo Branco)
+Rightframe = Frame(janela_login, relief=FLAT, bg="white")
+Rightframe.pack(side=RIGHT, fill=BOTH, expand=True)
 
-welcome_label = Label(Downframe, text="Seja bem vindo(a)", font=("Nunito", 26), bg="white", fg="black")
-welcome_label.place(x=0, y=10, relwidth=1)
+login_container = Frame(Rightframe, bg="white")
+login_container.place(relx=0.5, rely=0.5, anchor="center")
 
-cpf_label = Label(Downframe, text="Digite seu CPF (apenas números):", font=("Nunito", 20), bg="white", fg="black")
-cpf_label.place(x=0, y=60, relwidth=1)
+welcome_label = Label(login_container, text="Seja bem vindo(a)", font=("Nunito", 32, "bold"), bg="white", fg="black")
+welcome_label.pack(pady=(0, 25))
+
+cpf_label = Label(login_container, text="Digite seu CPF (apenas números):", font=("Nunito", 20), bg="white", fg="black")
+cpf_label.pack(pady=10)
 
 # ---------------------------------------------------------
-# 1. Função para validar CPF matematicamente
+# FUNÇÕES DE LÓGICA DO LOGIN
 # ---------------------------------------------------------
 def validar_cpf(cpf):
     cpf = re.sub(r'[^0-9]', '', str(cpf))
@@ -49,9 +71,6 @@ def validar_cpf(cpf):
             return False
     return True
 
-# ---------------------------------------------------------
-# 2. Função para limitar os caracteres e aceitar só números
-# ---------------------------------------------------------
 def limitar_tamanho(*args):
     valor = cpf_var.get()
     valor_numerico = re.sub(r'[^0-9]', '', valor)
@@ -60,66 +79,43 @@ def limitar_tamanho(*args):
     if valor != valor_numerico:
         cpf_var.set(valor_numerico)
 
-# ---------------------------------------------------------
-# 3. Função para abrir a próxima tela
-# ---------------------------------------------------------
 def abrir_tela_de_servicos(cpf_logado):
-    # Oculta a tela de login (mantendo o motor gráfico vivo no fundo)
     janela_login.withdraw()
-    
-    # Chama a tela de serviços passando o CPF e a janela principal (root)
     tela_servicos.iniciar_pdv(cpf_logado, janela_login)
 
-# ---------------------------------------------------------
-# 4. Função para salvar no Banco de Dados
-# ---------------------------------------------------------
 def salvar_e_logar():
     cpf_digitado = cpf_var.get()
-    
     if validar_cpf(cpf_digitado):
         conn = sqlite3.connect('banco_pedidos.db')
         cursor = conn.cursor()
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS sessao_usuario (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cpf TEXT UNIQUE
-            )
-        ''')
-        
+        cursor.execute('''CREATE TABLE IF NOT EXISTS sessao_usuario (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, cpf TEXT UNIQUE)''')
         try:
             cursor.execute("INSERT INTO sessao_usuario (cpf) VALUES (?)", (cpf_digitado,))
             conn.commit()
             mensagem_label.config(text="CPF cadastrado! Redirecionando...", fg="green")
         except sqlite3.IntegrityError:
             mensagem_label.config(text="Bem-vindo de volta! Redirecionando...", fg="blue")
-            
         conn.close()
-        
         janela_login.after(1000, lambda: abrir_tela_de_servicos(cpf_digitado))
     else:
         mensagem_label.config(text="Atenção: Digite um CPF válido.", fg="red")
 
 # ---------------------------------------------------------
-# 5. Interface e Vínculo das Variáveis
+# INTERFACE E VÍNCULOS
 # ---------------------------------------------------------
 cpf_var = StringVar()
 cpf_var.trace_add("write", limitar_tamanho)
 
-cpf_entry = ttk.Entry(Downframe, textvariable=cpf_var, width=20, font=("Nunito", 20), justify="center")
-cpf_entry.place(relx=0.5, y=110, anchor="n")
+cpf_entry = ttk.Entry(login_container, textvariable=cpf_var, width=22, font=("Nunito", 24), justify="center")
+cpf_entry.pack(pady=10, ipady=5) # ipady dá uma altura extra confortável para o campo de digitação
 
-mensagem_label = Label(Downframe, text="", font=("Nunito", 12, "bold"), bg="white")
-mensagem_label.place(relx=0.5, y=160, anchor="n")
+mensagem_label = Label(login_container, text="", font=("Nunito", 14, "bold"), bg="white")
+mensagem_label.pack(pady=10)
 
-cor_verde_logo = "#3BA97A"
-
-btn_entrar = Button(Downframe, text="CONFIRMAR", command=salvar_e_logar, 
-                    bg=cor_verde_logo, fg="white", 
-                    activebackground="#2e8560", activeforeground="white",
-                    font=("Nunito", 18, "bold"), 
-                    width=20, height=2, 
-                    relief=FLAT, cursor="hand2")
-btn_entrar.place(relx=0.5, y=230, anchor="n")
+btn_entrar = Button(login_container, text="CONFIRMAR", command=salvar_e_logar, 
+                    bg="#3BA97A", fg="white", activebackground="#2e8560", activeforeground="white",
+                    font=("Nunito", 18, "bold"), width=22, height=2, relief=FLAT, cursor="hand2")
+btn_entrar.pack(pady=15)
 
 janela_login.mainloop()
