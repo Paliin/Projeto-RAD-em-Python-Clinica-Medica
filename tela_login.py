@@ -2,6 +2,7 @@
 from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
+from tkinter import simpledialog
 from PIL import Image, ImageTk 
 import sqlite3
 import re
@@ -156,6 +157,19 @@ welcome_label.pack(pady=(0, 10))
 cpf_label = Label(login_container, text="Para iniciar, digite o seu CPF:", font=("Nunito", 20), bg="#41A77A", fg="white")
 cpf_label.pack(pady=(0, 40))
 
+#criação do acesso restrito
+def verificar_acesso_restrito():
+    # Abre uma janelinha nativa pedindo a senha
+    senha = simpledialog.askstring("Acesso Restrito", "Digite a senha do administrador:", show='*')
+    
+    # Verifica se a senha é a padrão
+    if senha == "123456":
+        import tela_cadastro # Importa o arquivo da tela administrativa
+        tela_cadastro.abrir_tela_cadastro(janela_login) # Passa a janela_login como root
+    elif senha is not None: 
+        # Se ele não clicou em "Cancelar", mas errou a senha
+        messagebox.showerror("Acesso Negado", "Senha incorreta. Acesso exclusivo para administradores.")
+
 # ENRIQUE: regras de negocio e banco
 TEXTO_PLACEHOLDER = "CPF(Somente números)"
 
@@ -220,5 +234,13 @@ mensagem_label.pack(pady=10)
 
 btn_entrar = BotaoArredondado(login_container, text="CONFIRMAR", bg_color="white", fg_color="#41A77A", font=("Nunito", 22, "bold"), command=salvar_e_logar, width=350, height=75, radius=35)
 btn_entrar.pack(pady=20)
+
+# Botão de Acesso Restrito no canto superior direito
+btn_restrito = Button(janela_login, text="⚙️ Acesso Restrito", font=("Nunito", 10, "bold"), 
+                      bg="#115272", fg="#FFFFFF", bd=0, cursor="hand2", 
+                      command=verificar_acesso_restrito, padx=10, pady=5)
+
+# O place ancora o botão no canto direito (relx=0.98) e um pouco abaixo do topo (rely=0.02)
+btn_restrito.place(relx=0.98, rely=0.02, anchor="ne")
 
 janela_login.mainloop()
