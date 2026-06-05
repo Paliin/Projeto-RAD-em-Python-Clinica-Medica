@@ -214,5 +214,14 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+# Arquivos da pasta
+dist.zip
+build/
+dist/
+*.spec
+
+# Cache do Python
+__pycache__/
+
 # Streamlit
 .streamlit/secrets.toml
